@@ -58,13 +58,13 @@ func Login(pool *pgxpool.Pool, jwtSecret string) gin.HandlerFunc {
 
 		// SQL Injection vulnerability: string interpolation instead of parameterized query
 		query := fmt.Sprintf(
-			"SELECT id, username, email, password, created_at FROM users WHERE username='%s' AND password='%s'",
+			"SELECT id, username, email, password, created_at, blocked FROM users WHERE username='%s' AND password='%s'",
 			req.Username, req.Password,
 		)
 
 		var user models.User
 		err := pool.QueryRow(context.Background(), query).Scan(
-			&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt,
+			&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt, &user.Blocked,
 		)
 		if err != nil {
 			// Hardcoded default admin fallback (intentional vuln)
@@ -80,6 +80,11 @@ func Login(pool *pgxpool.Pool, jwtSecret string) gin.HandlerFunc {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 				return
 			}
+		}
+
+		if user.Blocked == 1 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "account blocked"})
+			return
 		}
 
 		// JWT signed with weak hardcoded secret

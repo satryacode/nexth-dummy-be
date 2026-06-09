@@ -9,4 +9,5 @@ type User struct {
 	Email     string    `json:"email"`
 	Password  string    `json:"password"` // plaintext (intentional vuln)
 	CreatedAt time.Time `json:"created_at"`
+	Blocked   int       `json:"blocked"`
 }
