@@ -1,3 +1,4 @@
 .env
 *.env
 dummy-be
+logs/*.jsonl

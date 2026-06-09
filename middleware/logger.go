@@ -4,11 +4,14 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type responseWriter struct {
@@ -56,7 +59,27 @@ func RequestLogger(logger *zap.Logger) gin.HandlerFunc {
 }
 
 func NewLogger() (*zap.Logger, error) {
-	cfg := zap.NewProductionConfig()
-	cfg.OutputPaths = []string{"stdout"}
-	return cfg.Build()
+	if err := os.MkdirAll("logs", 0o755); err != nil {
+		return nil, fmt.Errorf("create logs dir: %w", err)
+	}
+
+	encCfg := zap.NewProductionEncoderConfig()
+	encCfg.TimeKey = "timestamp"
+	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+	enc := zapcore.NewJSONEncoder(encCfg)
+
+	logFile, err := os.OpenFile(
+		"logs/requests.jsonl",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY,
+		0o644,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("open log file: %w", err)
+	}
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(enc, zapcore.AddSync(os.Stdout), zap.InfoLevel),
+		zapcore.NewCore(enc, zapcore.AddSync(logFile), zap.InfoLevel),
+	)
+	return zap.New(core), nil
 }
