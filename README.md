@@ -18,12 +18,12 @@ cp .env.example .env
 Edit `.env` with your values:
 
 ```env
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_NAME=myapp_db
-DB_USER=myapp_user
-DB_PASS=nexthack-2026
-JWT_SECRET=secret
+DB_HOST=
+DB_PORT=
+DB_NAME=
+DB_USER=
+DB_PASS=
+JWT_SECRET=
 PORT=8080
 ```
 
@@ -69,18 +69,29 @@ curl http://localhost:8080/login \
 
 ## Endpoints
 
-| Method | Path        | Description                        |
-|--------|-------------|------------------------------------|
-| POST   | /register   | Register a new user                |
-| POST   | /login      | Login — returns JWT (SQLi vuln)    |
-| GET    | /home       | Protected home — broken auth vuln  |
+| Method | Path      | Description                       |
+| ------ | --------- | --------------------------------- |
+| POST   | /register | Register a new user               |
+| POST   | /login    | Login — returns JWT (SQLi vuln)   |
+| GET    | /home     | Protected home — broken auth vuln |
 
 ## Logs
 
 Every request is logged as a JSON line to `logs/requests.jsonl` (and stdout). The log format matches what the [agent-classifier](https://github.com/satryacode/agent-classifier) expects:
 
 ```json
-{"level":"info","timestamp":"2026-06-09T10:00:00.000Z","msg":"request","method":"POST","path":"/login","status":200,"ip":"1.2.3.4","body":"{\"username\":\"admin\"}","response_time_ms":12,"user_agent":"Mozilla/5.0"}
+{
+  "level": "info",
+  "timestamp": "2026-06-09T10:00:00.000Z",
+  "msg": "request",
+  "method": "POST",
+  "path": "/login",
+  "status": 200,
+  "ip": "1.2.3.4",
+  "body": "{\"username\":\"admin\"}",
+  "response_time_ms": 12,
+  "user_agent": "Mozilla/5.0"
+}
 ```
 
 To read logs from the container:
