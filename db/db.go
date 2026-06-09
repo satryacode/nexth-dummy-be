@@ -4,54 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/feature/rds/auth"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	appconfig "github.com/satryacode/nexth-dummy-be/config"
+	"github.com/satryacode/nexth-dummy-be/config"
 )
 
-func buildAuthToken(cfg *appconfig.Config) (string, error) {
-	awsCfg, err := config.LoadDefaultConfig(context.Background(),
-		config.WithRegion(cfg.AWSRegion))
-	if err != nil {
-		return "", fmt.Errorf("unable to load AWS config: %w", err)
-	}
-	endpoint := fmt.Sprintf("%s:%s", cfg.DBHost, cfg.DBPort)
-	token, err := auth.BuildAuthToken(context.Background(), endpoint, cfg.AWSRegion, cfg.DBUser, awsCfg.Credentials)
-	if err != nil {
-		return "", fmt.Errorf("unable to build auth token: %w", err)
-	}
-	return token, nil
-}
-
-func NewPool(cfg *appconfig.Config) (*pgxpool.Pool, error) {
-	token, err := buildAuthToken(cfg)
-	if err != nil {
-		return nil, err
-	}
-
+func NewPool(cfg *config.Config) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
-		"host=%s port=%s dbname=%s user=%s password=%s sslmode=require",
-		cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBUser, token,
+		"host=%s port=%s dbname=%s user=%s password=%s sslmode=disable",
+		cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBUser, cfg.DBPassword,
 	)
-
-	poolConfig, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse pool config: %w", err)
-	}
-
-	// Refresh token on each new connection (tokens expire in 15 min)
-	poolConfig.BeforeConnect = func(ctx context.Context, connConfig *pgx.ConnConfig) error {
-		t, err := buildAuthToken(cfg)
-		if err != nil {
-			return err
-		}
-		connConfig.Password = t
-		return nil
-	}
-
-	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create pgx pool: %w", err)
 	}
